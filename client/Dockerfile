@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.10
 
 # Install client dependencies and copy client files
 WORKDIR /chat/client

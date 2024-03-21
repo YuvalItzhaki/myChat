@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.10
 
 # Install server dependencies and copy server files
 WORKDIR /chat/server
