@@ -15,6 +15,22 @@ def get_rooms():
             print(room)
     else:
         print("Failed to fetch rooms from server")
+    return
+
+def check_room_exist(room):
+    response = requests.get(f"{SERVER_URL}/get_rooms")
+    rooms = response.json()
+    if room in rooms:
+        return True
+    else:
+        print("Room doesnt exist")
+        return False
+
+def choose_room():
+    while True:
+        room = input("Enter the name of the room: ")
+        if check_room_exist(room):
+            return room
 
 
 def get_mongo_client():
@@ -23,7 +39,7 @@ def get_mongo_client():
 
 def get_messages():
     client = get_mongo_client()
-    db = client['myChat']  # Replace 'myChat' with your database name
+    db = client['myChat']
     messages_collection = db['messages']
     messages = list(messages_collection.find({}, {'_id': 0}))
     return messages
@@ -62,7 +78,9 @@ def poll_messages(room, username):
 
 def main():
     get_rooms()
-    room = input("Which room do you want to connect?: ")
+    room = choose_room()
+    print(f"Chosen room: {room}")
+    check_room_exist(room)
     username = input("Enter your username: ")
 
     # Start a separate thread to poll messages continuously
