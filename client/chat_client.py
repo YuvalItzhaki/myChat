@@ -1,28 +1,59 @@
 import requests
 import time
 import threading
+from pymongo import MongoClient
 
-SERVER_URL = 'http://172.17.0.2:5000/'
-def get_messages():
-    response = requests.get(f"{SERVER_URL}/messages")
+SERVER_URL = 'http://127.0.0.1:5000/'
+
+
+def get_rooms():
+    response = requests.get(f"{SERVER_URL}/get_rooms")
     if response.status_code == 200:
-        return response.json()
+        rooms = response.json()
+        print("Available Rooms:")
+        for room in rooms:
+            print(room)
     else:
-        print("Failed to fetch messages from server")
-        return []
+        print("Failed to fetch rooms from server")
 
 
-def send_message(username, message):
-    data = {'username': username, 'message': message}
-    response = requests.post(f"{SERVER_URL}/messages", json=data)
-    if response.status_code == 201:
-        print("Message sent successfully")
-    else:
-        print("Failed to send message")
+def get_mongo_client():
+    return MongoClient('mongodb://127.0.0.1:27017/')
 
 
-def poll_messages(username):
-    while True:
+def get_messages():
+    client = get_mongo_client()
+    db = client['myChat']  # Replace 'myChat' with your database name
+    messages_collection = db['messages']
+    messages = list(messages_collection.find({}, {'_id': 0}))
+    return messages
+
+
+def send_message(room, username, message):
+    # Retry connecting to MongoDB with a delay
+    max_retries = 3
+    retry_delay = 1  # seconds
+    for attempt in range(max_retries):
+        try:
+            client = get_mongo_client()
+            db = client['myChat']  # Replace 'myChat' with your database name
+            messages_collection = db['messages']
+            data = {'join_room': room, 'username': username, 'message': message}
+            messages_collection.insert_one(data)
+            print("Message sent successfully")
+            return  # Success, exit retry loop
+        except Exception as e:
+            print(f"Failed to send message (attempt {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                print(f"Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+            else:
+                print("Max retries exceeded. Giving up.")
+                return
+
+
+def poll_messages(room, username):
+    if True:
         messages = get_messages()
         for msg in messages:
             print(f"{msg['username']}: {msg['message']}")
@@ -30,15 +61,17 @@ def poll_messages(username):
 
 
 def main():
+    get_rooms()
+    room = input("Which room do you want to connect?: ")
     username = input("Enter your username: ")
 
     # Start a separate thread to poll messages continuously
-    threading.Thread(target=poll_messages, args=(username,), daemon=True).start()
+    threading.Thread(target=poll_messages, args=(room, username,), daemon=True).start()
 
     # Main loop to send messages
     while True:
         message = input("Enter message: ")
-        send_message(username, message)
+        send_message(room, username, message)
 
 
 if __name__ == "__main__":
