@@ -20,9 +20,9 @@ def send_message():
         return jsonify({'error': 'Invalid request parameters'}), 400
 
 
-@app.route('/send_message', methods=['GET'])
-def get_messages():
-    messages = list(messages_collection.find({}, {'_id': 0}))  # Exclude '_id' field from the response
+@app.route('/send_message/<username>', methods=['GET'])
+def get_messages(username):
+    messages = list(messages_collection.find({'username': username}, {'_id': 0}))  # Exclude '_id' field from the response
     return jsonify(messages)
 
 
